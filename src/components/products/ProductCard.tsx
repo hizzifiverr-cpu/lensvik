@@ -2,9 +2,9 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import Image from "next/image";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
+import { CloudImage } from "@/components/ui/CloudImage";
 
 interface ProductCardProps {
     _id: string;
@@ -46,12 +46,13 @@ export function ProductCard({ _id, name, price, originalPrice, image, images, ca
                             className="w-full h-full object-contain p-4 transition-transform duration-700 group-hover:scale-105"
                         />
                     ) : (
-                        <Image
+                        <CloudImage
                             src={displayImage}
                             alt={name}
                             fill
-                            className="object-contain p-4 transition-transform duration-700 group-hover:scale-105"
+                            width={800}
                             sizes="(max-width: 768px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            className="object-contain p-4 transition-transform duration-700 group-hover:scale-105"
                         />
                     )}
                 </Link>

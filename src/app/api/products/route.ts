@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Product from '@/models/Product';
+import { destroyCloudinaryAssets } from '@/lib/cloudinary-server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -163,6 +164,17 @@ export async function POST(request: Request) {
 export async function DELETE() {
     try {
         await dbConnect();
+
+        // Destroy all Cloudinary assets referenced by any product before clearing the DB
+        const products = await Product.find(
+            {},
+            { images: 1, referenceImage: 1, image: 1, vtoImage: 1 }
+        ).lean();
+        const imageUrls = (products as any[]).flatMap(p =>
+            [p.images, p.referenceImage, p.image, p.vtoImage].flat()
+        );
+        await destroyCloudinaryAssets(imageUrls);
+
         await Product.deleteMany({});
         return NextResponse.json({ message: 'All products deleted successfully' });
     } catch (error: any) {

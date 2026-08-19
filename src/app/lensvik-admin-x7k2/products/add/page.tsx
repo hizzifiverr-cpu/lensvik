@@ -5,7 +5,7 @@ import { Upload, X, Plus, Sparkles, Eye, Save, ArrowLeft, Glasses, Tag, Package,
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import Link from 'next/link';
-import { compressImage } from '@/lib/compressImage';
+import { uploadProductImage, destroyImageFromCloudinary } from '@/lib/cloudinary';
 
 const CATEGORIES = ['Sunglasses', 'Eyeglasses', 'Prescription Glasses', 'Blue Light Glasses', 'Contact Lenses', 'Accessories'];
 const FRAME_COLORS = ['Black', 'Matte Black', 'Tortoise', 'Gold', 'Silver', 'Grey', 'Gunmetal', 'Rose Gold', 'Brown', 'Navy', 'Clear', 'Red', 'Pink', 'Maroon', 'Blue', 'Purple', 'Green', 'Marble', 'Orange', 'Yellow', 'White', 'Two Tone or Multi'];
@@ -26,6 +26,7 @@ export default function AddProductPage() {
   const [selectedSizes, setSelectedSizes] = useState<string[]>([]);
   const [tab, setTab] = useState<'basic' | 'variants' | 'eyewear' | 'seo'>('basic');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [aiLoading, setAiLoading] = useState(false);
   const [description, setDescription] = useState('');
   const [form, setForm] = useState({
@@ -127,55 +128,68 @@ export default function AddProductPage() {
   const fileRef = useRef<HTMLInputElement>(null);
   const refFileRef = useRef<HTMLInputElement>(null);
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setDragging(false);
-    const files = Array.from(e.dataTransfer.files);
-    files.forEach(f => {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setImages(prev => [...prev, compressed]);
-      };
-      reader.readAsDataURL(f);
-    });
-  };
-
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    for (const f of files) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setImages(prev => [...prev, compressed]);
-      };
-      reader.readAsDataURL(f);
+    const files = Array.from(e.dataTransfer.files).filter(f => f.type.startsWith('image/'));
+    setUploading(true);
+    try {
+      for (const f of files) {
+        const url = await uploadProductImage(f);
+        if (url) setImages(prev => [...prev, url]);
+      }
+    } finally {
+      setUploading(false);
     }
   };
 
-  const handleRefDrop = (e: React.DragEvent) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []).filter(f => f.type.startsWith('image/'));
+    setUploading(true);
+    try {
+      for (const f of files) {
+        const url = await uploadProductImage(f);
+        if (url) setImages(prev => [...prev, url]);
+      }
+    } finally {
+      setUploading(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  const handleRefDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     setRefDragging(false);
     const file = e.dataTransfer.files[0];
     if (file && file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setForm({ ...form, referenceImage: compressed });
-      };
-      reader.readAsDataURL(file);
+      setUploading(true);
+      try {
+        const url = await uploadProductImage(file);
+        if (url) {
+          const prev = form.referenceImage;
+          if (prev && prev !== url) destroyImageFromCloudinary(prev);
+          setForm(prevForm => ({ ...prevForm, referenceImage: url }));
+        }
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
-  const handleRefFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleRefFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onloadend = async () => {
-        const compressed = await compressImage(reader.result as string);
-        setForm({ ...form, referenceImage: compressed });
-      };
-      reader.readAsDataURL(file);
+      setUploading(true);
+      try {
+        const url = await uploadProductImage(file);
+        if (url) {
+          const prev = form.referenceImage;
+          if (prev && prev !== url) destroyImageFromCloudinary(prev);
+          setForm(prevForm => ({ ...prevForm, referenceImage: url }));
+        }
+      } finally {
+        setUploading(false);
+      }
     }
   };
 
@@ -258,7 +272,9 @@ export default function AddProductPage() {
                   className={`border-2 border-dashed rounded-2xl p-10 text-center cursor-pointer transition-all ${dragging ? 'border-blue-600 bg-blue-50' : 'border-slate-200 bg-slate-50/50 hover:bg-slate-50 hover:border-slate-300'}`}
                 >
                   <Upload className="w-10 h-10 text-slate-400 mx-auto mb-3" />
-                  <p className="text-sm text-slate-600 font-bold tracking-tight">Drop images here or <span className="text-blue-600">browse</span></p>
+                  <p className="text-sm text-slate-600 font-bold tracking-tight">
+                    {uploading ? 'Uploading to Cloudinary…' : <>Drop images here or <span className="text-blue-600">browse</span></>}
+                  </p>
                   <p className="text-xs text-slate-400 mt-1 font-medium">PNG, JPG, WebP up to 10MB · You can upload up to 10+ images</p>
                   <p className="text-[10px] text-purple-600/70 mt-2 font-bold uppercase tracking-tight">1st image = Try-On · 2nd image = Thumbnail (catalog/listing)</p>
                   <input ref={fileRef} type="file" multiple accept="image/*" className="hidden" onChange={handleFileChange} />
@@ -269,7 +285,12 @@ export default function AddProductPage() {
                       <div key={i} className="relative w-24 h-24 rounded-2xl overflow-hidden border border-slate-200 group shadow-sm">
                         <img src={img} alt="" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button onClick={(e) => { e.stopPropagation(); setImages(images.filter((_, j) => j !== i)); }} className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors">
+                          <button onClick={(e) => {
+                            e.stopPropagation();
+                            const removed = images[i];
+                            setImages(images.filter((_, j) => j !== i));
+                            if (removed) destroyImageFromCloudinary(removed);
+                          }} className="w-8 h-8 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center text-white hover:bg-red-500 transition-colors">
                             <X className="w-4 h-4" />
                           </button>
                         </div>

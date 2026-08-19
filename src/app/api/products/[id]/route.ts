@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import dbConnect from '@/lib/db';
 import Product from '@/models/Product';
+import { destroyCloudinaryAssets } from '@/lib/cloudinary-server';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -13,12 +14,24 @@ export async function DELETE(
         await dbConnect();
         const { id } = await context.params;
 
-        // Use findOneAndDelete since _id is a custom string, not ObjectId
-        const deletedProduct = await Product.findOneAndDelete({ _id: id });
+        // Fetch the product first so we can destroy its Cloudinary assets
+        const product = await Product.findOne({ _id: id });
 
-        if (!deletedProduct) {
+        if (!product) {
             return NextResponse.json({ error: 'Product not found' }, { status: 404 });
         }
+
+        // Destroy any Cloudinary-hosted images referenced by this product
+        const imageUrls = [
+            product.images,
+            product.referenceImage,
+            product.image,
+            product.vtoImage,
+        ].flat() as Array<string | undefined>;
+        await destroyCloudinaryAssets(imageUrls);
+
+        // Use findOneAndDelete since _id is a custom string, not ObjectId
+        await Product.findOneAndDelete({ _id: id });
 
         return NextResponse.json({ message: 'Product deleted successfully' });
     } catch (error: any) {

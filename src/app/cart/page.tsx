@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import Image from "next/image";
+import { CloudImage } from "@/components/ui/CloudImage";
 import { Footer } from "@/components/layout/Footer";
 
 export default function CartPage() {
@@ -107,10 +107,11 @@ export default function CartPage() {
                                         >
                                             {/* Thumbnail */}
                                             <div className="w-24 h-24 md:w-32 md:h-32 relative rounded-xl overflow-hidden bg-white border border-slate-100 shrink-0">
-                                                <Image
+                                                <CloudImage
                                                     src={item.image}
                                                     alt={item.name}
                                                     fill
+                                                    width={256}
                                                     className="object-contain p-2"
                                                     sizes="128px"
                                                 />

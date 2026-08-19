@@ -9,7 +9,7 @@ import { ShoppingCart, Trash2, Plus, Minus, CreditCard, ShieldCheck, MapPin, Pho
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { toast } from "sonner";
-import Image from "next/image";
+import { CloudImage } from "@/components/ui/CloudImage";
 import { MessageCircle } from "lucide-react";
 
 const PAKISTANI_CITIES = [
@@ -239,7 +239,7 @@ export default function CheckoutPage() {
                                             className="flex gap-3 items-center p-3 bg-white rounded-2xl border border-slate-100 shadow-sm group"
                                         >
                                             <div className="w-16 h-16 relative rounded-xl overflow-hidden bg-slate-100 border border-slate-100 shrink-0">
-                                                <Image src={item.image} alt={item.name} fill className="object-contain p-2" />
+                                                <CloudImage src={item.image} alt={item.name} fill width={128} className="object-contain p-2" />
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <h3 className="text-xs font-black uppercase text-slate-800 truncate group-hover:text-primary transition-colors">{item.name}</h3>

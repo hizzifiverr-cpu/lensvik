@@ -13,7 +13,7 @@ import { ShoppingCart, Heart, Share2, CheckCircle2, Star, Eye, ChevronRight, Zoo
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/context/CartContext";
 import { toast } from "sonner";
-import Image from "next/image";
+import { CloudImage } from "@/components/ui/CloudImage";
 import { LensConfigurator } from "@/components/products/LensConfigurator";
 import { VariationSelector } from "@/components/products/VariationSelector";
 import { ProductSpecs } from "@/components/products/ProductSpecs";
@@ -234,10 +234,11 @@ export default function ProductPage() {
                                                 className="w-full h-full object-contain p-6 md:p-10"
                                             />
                                         ) : (
-                                            <Image
+                                            <CloudImage
                                                 src={activeImage}
                                                 alt={product.name}
                                                 fill
+                                                width={1200}
                                                 className="object-contain p-6 md:p-10"
                                                 sizes="(max-width: 768px) 100vw, 50vw"
                                                 priority
@@ -298,10 +299,11 @@ export default function ProductPage() {
                                         {isDataUri(img) ? (
                                             <img src={img} alt={product.name} className="w-full h-full object-contain p-2 md:p-3" />
                                         ) : (
-                                            <Image
+                                            <CloudImage
                                                 src={img}
                                                 alt={product.name}
                                                 fill
+                                                width={200}
                                                 className="object-contain p-2 md:p-3"
                                                 sizes="(max-width: 768px) 25vw, 100px"
                                             />
